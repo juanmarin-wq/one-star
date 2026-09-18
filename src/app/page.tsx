@@ -10,7 +10,7 @@ import MediaCarousel from "@/components/home/MediaCarousel"
 
 import { getVisibleBanners } from "@/server/services/banner.service"
 import { getVisibleGridBlocks } from "@/server/services/home-grid.service"
-import { getAllBrands } from "@/server/services/brand.service"
+import { getStorefrontBrands } from "@/server/services/brand.service"
 import { getActiveLandingSections } from "@/server/repositories/landing-section.repository"
 import { getTopBanner } from "@/server/repositories/top-banner.repository"
 
@@ -28,8 +28,8 @@ export default async function Home() {
       console.error("[home] getVisibleGridBlocks falló:", error)
       return []
     }),
-    getAllBrands(true).catch((error: unknown) => {
-      console.error("[home] getAllBrands falló:", error)
+    getStorefrontBrands().catch((error: unknown) => {
+      console.error("[home] getStorefrontBrands falló:", error)
       return []
     }),
     getActiveLandingSections().catch((error: unknown) => {

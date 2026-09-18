@@ -90,6 +90,24 @@ const columns: ColumnDef<ProductDTO, unknown>[] = [
     ),
   },
   {
+    id: "origen",
+    header: "Origen",
+    accessorFn: (row) => (row.erpId ? "ERP" : "Manual"),
+    cell: ({ row }) => {
+      const isErp = Boolean(row.original.erpId)
+      return (
+        <span
+          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+            isErp ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-700"
+          }`}
+          title={isErp ? `Sincronizado desde el ERP (erpId: ${row.original.erpId})` : "Cargado manualmente (admin o Excel)"}
+        >
+          {isErp ? "ERP" : "Manual"}
+        </span>
+      )
+    },
+  },
+  {
     id: "precio",
     header: "Precio",
     accessorKey: "basePrice",

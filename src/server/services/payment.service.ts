@@ -9,6 +9,7 @@ import {
 } from "./order.service"
 import { updateOrderPaymentReference } from "../repositories/order.repository"
 import { sendMetaPurchaseForOrder } from "./meta-conversions.service"
+import { issueAndSendGiftCardsForOrder } from "./gift-card.service"
 
 /** Tolerancia para comparar montos (centavos por redondeo de la pasarela) */
 const AMOUNT_TOLERANCE = 0.01
@@ -48,6 +49,9 @@ function runPostPaymentEffects(order: OrderDTO): void {
   })
   sendMetaPurchaseForOrder(order).catch((error: unknown) => {
     console.error(`[payment] Meta CAPI falló para pedido ${order.id}:`, error)
+  })
+  issueAndSendGiftCardsForOrder(order).catch((error: unknown) => {
+    console.error(`[payment] Emisión de tarjeta(s) de regalo falló para pedido ${order.id}:`, error)
   })
 }
 

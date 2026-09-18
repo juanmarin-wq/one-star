@@ -285,10 +285,16 @@ model OrderItem {
 // ─────────────────────────────────────────────
 
 model GiftCard {
-  id       String  @id @default(cuid())
-  code     String  @unique
-  balance  Decimal @db.Decimal(10, 2)
-  isActive Boolean @default(true)
+  id            String   @id @default(cuid())
+  code          String   @unique
+  balance       Decimal  @db.Decimal(10, 2)
+  isActive      Boolean  @default(true)
+  /** Pedido que originó esta tarjeta; null en la tarjeta de prueba del seed. */
+  orderId       String?
+  customerEmail String?
+  createdAt     DateTime @default(now())
+
+  @@index([orderId])
 }
 
 // ─────────────────────────────────────────────

@@ -56,7 +56,7 @@ describe("consultas de pedidos", () => {
 
     expect(m.order.findUnique).toHaveBeenCalledWith({
       where: { id: "ord_1" },
-      include: { items: { include: { product: true } }, user: true },
+      include: { items: { include: { product: true, variant: true } }, user: true },
     })
   })
 

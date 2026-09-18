@@ -149,3 +149,52 @@ export function orderConfirmationEmail(params: {
     html: layout(inner, `Recibimos tu pedido #${shortId}. Total: ${formatCOP(params.total)}.`),
   }
 }
+
+export interface GiftCardEmailCard {
+  code: string
+  balance: number
+}
+
+export function giftCardDeliveryEmail(params: {
+  name?: string
+  orderId: string
+  cards: GiftCardEmailCard[]
+}): EmailContent {
+  const shortId = params.orderId.slice(-8).toUpperCase()
+  const plural = params.cards.length > 1
+
+  const cardsHtml = params.cards
+    .map(
+      (card) => `
+      <tr>
+        <td style="padding:16px;border:1px dashed ${COLOR.border};border-radius:8px;">
+          <div style="font-size:12px;letter-spacing:0.05em;color:${COLOR.muted};text-transform:uppercase;">Código</div>
+          <div style="font-size:20px;font-weight:700;letter-spacing:0.05em;color:${COLOR.text};margin:4px 0 8px;">${escapeHtml(card.code)}</div>
+          <div style="font-size:14px;color:${COLOR.text};">Saldo: <strong>${formatCOP(card.balance)}</strong></div>
+        </td>
+      </tr>
+      <tr><td style="height:12px;"></td></tr>`
+    )
+    .join("")
+
+  const inner = `
+    <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;">${plural ? "Tus tarjetas de regalo" : "Tu tarjeta de regalo"}</h1>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:${COLOR.text};">${greeting(params.name)}</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:${COLOR.text};">
+      Gracias por tu compra <strong>#${escapeHtml(shortId)}</strong>. ${plural ? "Aquí están tus códigos" : "Aquí está tu código"}
+      para usar en cualquier tienda física o al comprar de nuevo en línea One Star:
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      ${cardsHtml}
+    </table>
+    <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:${COLOR.muted};">
+      Guarda este correo: el código es la única forma de usar el saldo.
+    </p>`
+
+  return {
+    subject: plural
+      ? `Tus tarjetas de regalo One Star #${shortId}`
+      : `Tu tarjeta de regalo One Star #${shortId}`,
+    html: layout(inner, plural ? "Tus tarjetas de regalo ya están listas." : "Tu tarjeta de regalo ya está lista."),
+  }
+}

@@ -42,6 +42,8 @@ export interface OrderItemDTO {
   productImage: string | null
   quantity: number
   unitPrice: number
+  /** SKU de la variante comprada; null en pedidos previos a la migración sin variante. */
+  sku: string | null
 }
 
 export interface OrderDTO {
@@ -83,6 +85,7 @@ function mapToDTO(raw: {
     id: string
     productId: string
     product?: { name?: string; images?: Array<{ url: string }> }
+    variant?: { sku: string } | null
     quantity: number
     unitPrice: { toNumber: () => number }
   }>
@@ -111,6 +114,7 @@ function mapToDTO(raw: {
           productImage: item.product?.images?.[0]?.url ?? null,
           quantity: item.quantity,
           unitPrice: item.unitPrice.toNumber(),
+          sku: item.variant?.sku ?? null,
         }))
       : undefined,
   }

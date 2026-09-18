@@ -139,6 +139,7 @@ describe("purchaseInputFromOrder", () => {
         productImage: null,
         quantity: 1,
         unitPrice: 120000,
+        sku: null,
       },
     ],
   }

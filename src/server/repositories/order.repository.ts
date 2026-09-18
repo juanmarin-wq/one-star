@@ -13,7 +13,7 @@ export async function findOrderById(id: string) {
   return prisma.order.findUnique({
     where: { id },
     include: {
-      items: { include: { product: true } },
+      items: { include: { product: true, variant: true } },
       user: true,
     },
   })
@@ -30,7 +30,7 @@ export async function findManyOrders(
     take,
     skip,
     include: {
-      items: { include: { product: true } },
+      items: { include: { product: true, variant: true } },
       user: true,
     },
   })

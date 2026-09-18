@@ -55,6 +55,15 @@ const navGroups = [
           </svg>
         ),
       },
+      {
+        label: "Tarjetas de regalo",
+        href: "/admin/tarjetas-regalo",
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.5-3-6-3-6 0s4.5 3 6 3 6-0 6-3-4.5-3-6 0zM3 12h18v7a1 1 0 01-1 1H4a1 1 0 01-1-1v-7zM3 8h18v4H3z" />
+          </svg>
+        ),
+      },
     ]
   },
   {
@@ -66,6 +75,15 @@ const navGroups = [
         icon: (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        ),
+      },
+      {
+        label: "Importar productos",
+        href: "/admin/productos/importar",
+        icon: (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 16V4m0 0L8 8m4-4l4 4M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
           </svg>
         ),
       },
