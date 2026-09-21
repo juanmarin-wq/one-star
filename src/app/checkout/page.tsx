@@ -205,10 +205,13 @@ function CheckoutForm({
       if (!hasEditedForm.current) setValues(draft.form)
       if (!draft.couponCode) return
 
-      const currentSubtotal = useCartStore.getState().subtotal
-      if (currentSubtotal <= 0) return
+      const currentCart = useCartStore.getState()
+      if (currentCart.subtotal <= 0 || currentCart.items.length === 0) return
 
-      const couponResult = await validateCouponAction(draft.couponCode, currentSubtotal)
+      const couponResult = await validateCouponAction(
+        draft.couponCode,
+        currentCart.items.map((i) => ({ variantId: i.id, quantity: i.quantity }))
+      )
       if (cancelled) return
       if (couponResult.valid && couponResult.code && couponResult.discountAmount !== undefined) {
         setAppliedCoupon({

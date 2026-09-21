@@ -32,9 +32,13 @@ export default function OrderSummary({ shippingCost, appliedCoupon, onCouponChan
     if (!couponCode.trim()) return
     setCouponApplying(true)
     setCouponError("")
-    // El servidor valida vigencia, tope de usos y compra mínima, y calcula el
-    // descuento. En placeOrder se revalida de nuevo: esto es solo para la UI.
-    const result = await validateCouponAction(couponCode, subtotal)
+    // El servidor valida vigencia, tope de usos, categoría y compra mínima, y
+    // calcula el descuento. En placeOrder se revalida de nuevo: esto es solo
+    // para la UI — por eso solo mandamos variantId+quantity, nunca precios.
+    const result = await validateCouponAction(
+      couponCode,
+      items.map((i) => ({ variantId: i.id, quantity: i.quantity }))
+    )
     if (result.valid && result.code && result.discountAmount !== undefined) {
       onCouponChange({ code: result.code, discountAmount: result.discountAmount })
       setCouponCode("")

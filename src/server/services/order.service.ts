@@ -132,6 +132,7 @@ interface PricedOrderItem {
   productName: string
   quantity: number
   unitPrice: number
+  categoryId: string
 }
 
 /**
@@ -171,6 +172,7 @@ async function priceItemsFromDatabase(
       productName: product.name,
       quantity: item.quantity,
       unitPrice,
+      categoryId: product.categoryId,
     }
   })
 }
@@ -209,7 +211,10 @@ export async function placeOrder(
   // 0.2 Cupón: se revalida en servidor y el descuento se recalcula desde la BD.
   let appliedCoupon: { id: string; code: string; discountAmount: number } | null = null
   if (data.couponCode) {
-    const validation = await validateCouponForOrder(data.couponCode, subtotal)
+    const validation = await validateCouponForOrder(
+      data.couponCode,
+      pricedItems.map((i) => ({ categoryId: i.categoryId, unitPrice: i.unitPrice, quantity: i.quantity }))
+    )
     if (!validation.valid) {
       throw new Error(`El cupón "${data.couponCode}" ya no es válido: ${validation.reason}`)
     }

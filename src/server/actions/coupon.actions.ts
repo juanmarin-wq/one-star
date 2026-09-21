@@ -3,6 +3,7 @@
 import { headers } from "next/headers"
 import { z } from "zod"
 import { validateCouponForOrder } from "@/server/services/coupon.service"
+import { findVariantsForPricing } from "@/server/repositories/variant.repository"
 
 /** Rate limiting en memoria por IP (se reinicia al reiniciar el proceso). */
 const attempts = new Map<string, { count: number; resetAt: number }>()
@@ -23,7 +24,14 @@ function isRateLimited(ip: string): boolean {
 
 const inputSchema = z.object({
   code: z.string().trim().min(1).max(40),
-  subtotal: z.number().nonnegative().finite(),
+  items: z
+    .array(
+      z.object({
+        variantId: z.string().trim().min(1),
+        quantity: z.number().int().positive(),
+      })
+    )
+    .min(1),
 })
 
 export interface CouponValidationResult {
@@ -36,12 +44,16 @@ export interface CouponValidationResult {
 /**
  * Valida un cupón para el checkout. Pública (el cliente aún no tiene pedido),
  * solo lectura; el descuento definitivo se recalcula en `placeOrder`.
+ *
+ * SEGURIDAD: recibe solo `variantId`+`quantity` del carrito del cliente —
+ * precio y categoría siempre se resuelven aquí desde la base de datos, nunca
+ * se confía en un monto o categoría que mande el navegador.
  */
 export async function validateCouponAction(
   code: string,
-  subtotal: number
+  items: { variantId: string; quantity: number }[]
 ): Promise<CouponValidationResult> {
-  const parsed = inputSchema.safeParse({ code, subtotal })
+  const parsed = inputSchema.safeParse({ code, items })
   if (!parsed.success) {
     return { valid: false, error: "Cupón no válido" }
   }
@@ -53,7 +65,21 @@ export async function validateCouponAction(
   }
 
   try {
-    const result = await validateCouponForOrder(parsed.data.code, parsed.data.subtotal)
+    const variantIds = parsed.data.items.map((i) => i.variantId)
+    const variants = await findVariantsForPricing(variantIds)
+    const variantMap = new Map(variants.map((v) => [v.id, v]))
+
+    const resolvedItems = parsed.data.items.flatMap(({ variantId, quantity }) => {
+      const variant = variantMap.get(variantId)
+      if (!variant) return []
+      const unitPrice =
+        variant.product.isOnSale && variant.product.salePrice !== null
+          ? variant.product.salePrice.toNumber()
+          : variant.product.basePrice.toNumber()
+      return [{ categoryId: variant.product.categoryId, unitPrice, quantity }]
+    })
+
+    const result = await validateCouponForOrder(parsed.data.code, resolvedItems)
     if (!result.valid) {
       return { valid: false, error: result.reason }
     }

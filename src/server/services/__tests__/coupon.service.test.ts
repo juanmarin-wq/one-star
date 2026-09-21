@@ -111,12 +111,15 @@ describe("validateCoupon", () => {
   })
 })
 
+// Un solo ítem sin categoría específica: equivalente al antiguo "subtotal" plano.
+const flatItems = (subtotal: number) => [{ categoryId: "cat-any", unitPrice: subtotal, quantity: 1 }]
+
 describe("validateCouponForOrder", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("calcula el descuento porcentual sobre el subtotal", async () => {
     mockFindByCode.mockResolvedValue(activeCoupon as never)
-    const result = await validateCouponForOrder("PROMO20", 100000)
+    const result = await validateCouponForOrder("PROMO20", flatItems(100000))
     expect(result.valid).toBe(true)
     if (result.valid) {
       expect(result.discountAmount).toBe(20000)
@@ -132,42 +135,86 @@ describe("validateCouponForOrder", () => {
       minOrderAmount: null,
     }
     mockFindByCode.mockResolvedValue(fixed as never)
-    const result = await validateCouponForOrder("PROMO20", 60000)
+    const result = await validateCouponForOrder("PROMO20", flatItems(60000))
     expect(result.valid).toBe(true)
     if (result.valid) expect(result.discountAmount).toBe(60000)
   })
 
   it("normaliza el código a mayúsculas antes de buscar", async () => {
     mockFindByCode.mockResolvedValue(activeCoupon as never)
-    await validateCouponForOrder("  promo20 ", 100000)
+    await validateCouponForOrder("  promo20 ", flatItems(100000))
     expect(mockFindByCode).toHaveBeenCalledWith("PROMO20")
   })
 
   it("rechaza cuando el subtotal no alcanza la compra mínima", async () => {
     mockFindByCode.mockResolvedValue(activeCoupon as never)
-    const result = await validateCouponForOrder("PROMO20", 30000)
+    const result = await validateCouponForOrder("PROMO20", flatItems(30000))
     expect(result.valid).toBe(false)
     if (!result.valid) expect(result.reason).toContain("compra mínima")
   })
 
   it("rechaza cuando alcanzó el límite de usos", async () => {
     mockFindByCode.mockResolvedValue({ ...activeCoupon, maxUses: 5, usedCount: 5 } as never)
-    const result = await validateCouponForOrder("PROMO20", 100000)
+    const result = await validateCouponForOrder("PROMO20", flatItems(100000))
     expect(result.valid).toBe(false)
     if (!result.valid) expect(result.reason).toContain("límite de usos")
   })
 
   it("rechaza cupones vencidos", async () => {
     mockFindByCode.mockResolvedValue({ ...activeCoupon, validUntil: yesterday } as never)
-    const result = await validateCouponForOrder("PROMO20", 100000)
+    const result = await validateCouponForOrder("PROMO20", flatItems(100000))
     expect(result.valid).toBe(false)
   })
 
   it("rechaza cupones inexistentes o inactivos", async () => {
     mockFindByCode.mockResolvedValue(null)
-    expect((await validateCouponForOrder("GHOST", 100000)).valid).toBe(false)
+    expect((await validateCouponForOrder("GHOST", flatItems(100000))).valid).toBe(false)
     mockFindByCode.mockResolvedValue({ ...activeCoupon, isActive: false } as never)
-    expect((await validateCouponForOrder("PROMO20", 100000)).valid).toBe(false)
+    expect((await validateCouponForOrder("PROMO20", flatItems(100000))).valid).toBe(false)
+  })
+
+  describe("restringido a categoría", () => {
+    const categoryCoupon = { ...activeCoupon, categoryId: "cat-calzado", minOrderAmount: null }
+
+    it("descuenta solo el subtotal de la categoría del cupón, no todo el carrito", async () => {
+      mockFindByCode.mockResolvedValue(categoryCoupon as never)
+      const result = await validateCouponForOrder("PROMO20", [
+        { categoryId: "cat-calzado", unitPrice: 100000, quantity: 1 },
+        { categoryId: "cat-accesorios", unitPrice: 50000, quantity: 1 },
+      ])
+      expect(result.valid).toBe(true)
+      if (result.valid) expect(result.discountAmount).toBe(20000) // 20% de 100.000, no de 150.000
+    })
+
+    it("rechaza cuando el carrito no tiene ningún ítem de la categoría", async () => {
+      mockFindByCode.mockResolvedValue(categoryCoupon as never)
+      const result = await validateCouponForOrder("PROMO20", [
+        { categoryId: "cat-accesorios", unitPrice: 50000, quantity: 1 },
+      ])
+      expect(result.valid).toBe(false)
+      if (!result.valid) expect(result.reason).toContain("no aplica")
+    })
+
+    it("el mínimo de compra se mide sobre TODO el carrito, no solo la categoría elegible", async () => {
+      mockFindByCode.mockResolvedValue({ ...categoryCoupon, minOrderAmount: makeFullDecimal(200000) } as never)
+      const result = await validateCouponForOrder("PROMO20", [
+        { categoryId: "cat-calzado", unitPrice: 150000, quantity: 1 },
+        { categoryId: "cat-accesorios", unitPrice: 100000, quantity: 1 },
+      ])
+      // Total del carrito = 250.000 >= mínimo 200.000 -> alcanza, aunque calzado solo sea 150.000
+      expect(result.valid).toBe(true)
+      if (result.valid) expect(result.discountAmount).toBe(30000) // 20% de 150.000 (solo calzado)
+    })
+
+    it("sin categoryId se comporta igual que antes (aplica a todo el carrito)", async () => {
+      mockFindByCode.mockResolvedValue(activeCoupon as never) // categoryId: null
+      const result = await validateCouponForOrder("PROMO20", [
+        { categoryId: "cat-calzado", unitPrice: 100000, quantity: 1 },
+        { categoryId: "cat-accesorios", unitPrice: 50000, quantity: 1 },
+      ])
+      expect(result.valid).toBe(true)
+      if (result.valid) expect(result.discountAmount).toBe(30000) // 20% de 150.000
+    })
   })
 })
 

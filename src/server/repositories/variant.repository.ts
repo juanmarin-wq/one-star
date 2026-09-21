@@ -61,6 +61,7 @@ export async function findVariantsForPricing(variantIds: string[]) {
           basePrice: true,
           isOnSale: true,
           salePrice: true,
+          categoryId: true,
         },
       },
     },
