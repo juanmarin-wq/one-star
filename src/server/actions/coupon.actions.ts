@@ -69,14 +69,22 @@ export async function validateCouponAction(
     const variants = await findVariantsForPricing(variantIds)
     const variantMap = new Map(variants.map((v) => [v.id, v]))
 
-    const resolvedItems = parsed.data.items.flatMap(({ variantId, quantity }) => {
-      const variant = variantMap.get(variantId)
-      if (!variant) return []
+    // Igual que placeOrder: un producto que ya no está disponible no se ignora
+    // en silencio (daría un descuento incorrecto), se le avisa al cliente.
+    if (parsed.data.items.some((i) => !variantMap.has(i.variantId))) {
+      return {
+        valid: false,
+        error: "Algún producto de tu carrito ya no está disponible. Revisa tu carrito.",
+      }
+    }
+
+    const resolvedItems = parsed.data.items.map(({ variantId, quantity }) => {
+      const variant = variantMap.get(variantId)!
       const unitPrice =
         variant.product.isOnSale && variant.product.salePrice !== null
           ? variant.product.salePrice.toNumber()
           : variant.product.basePrice.toNumber()
-      return [{ categoryId: variant.product.categoryId, unitPrice, quantity }]
+      return { categoryId: variant.product.categoryId, unitPrice, quantity }
     })
 
     const result = await validateCouponForOrder(parsed.data.code, resolvedItems)

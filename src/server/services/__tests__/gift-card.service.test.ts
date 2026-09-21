@@ -5,7 +5,7 @@ vi.mock("server-only", () => ({}))
 
 vi.mock("@/server/repositories/gift-card.repository", () => ({
   findPurchasableGiftCardVariants: vi.fn(),
-  createGiftCardRecord: vi.fn(),
+  issueMissingGiftCardsForOrder: vi.fn(),
   findGiftCardByCode: vi.fn(),
   redeemGiftCardAmountRecord: vi.fn(),
 }))
@@ -23,7 +23,7 @@ import {
 } from "@/server/services/gift-card.service"
 import {
   findPurchasableGiftCardVariants,
-  createGiftCardRecord,
+  issueMissingGiftCardsForOrder,
   findGiftCardByCode,
   redeemGiftCardAmountRecord,
 } from "@/server/repositories/gift-card.repository"
@@ -133,19 +133,13 @@ describe("issueGiftCardsForOrder", () => {
     })
     const issued = await issueGiftCardsForOrder(order)
     expect(issued).toEqual([])
-    expect(createGiftCardRecord).not.toHaveBeenCalled()
+    expect(issueMissingGiftCardsForOrder).not.toHaveBeenCalled()
   })
 
   it("emite un código por unidad comprada", async () => {
-    vi.mocked(createGiftCardRecord).mockImplementation(async (data) => ({
-      id: "gc-1",
-      code: data.code,
-      balance: decimal(data.balance) as never,
-      isActive: true,
-      orderId: data.orderId,
-      customerEmail: data.customerEmail,
-      createdAt: new Date(),
-    }))
+    vi.mocked(issueMissingGiftCardsForOrder).mockImplementation(async (params, gen) =>
+      params.balances.map((balance) => ({ code: gen(), balance }))
+    )
     const order = baseOrder({
       items: [{ id: "i1", productId: "p1", productName: "Tarjeta de Regalo $100.000", productImage: null, quantity: 2, unitPrice: 100000, sku: "GIFT-CARD-100000" }],
     })
@@ -153,19 +147,16 @@ describe("issueGiftCardsForOrder", () => {
     expect(issued).toHaveLength(2)
     expect(issued.every((c) => c.balance === 100000)).toBe(true)
     expect(new Set(issued.map((c) => c.code)).size).toBe(2)
-    expect(createGiftCardRecord).toHaveBeenCalledTimes(2)
+    expect(issueMissingGiftCardsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: "order-1", balances: [100000, 100000] }),
+      expect.any(Function)
+    )
   })
 
   it("pedido mixto solo emite la tarjeta de regalo", async () => {
-    vi.mocked(createGiftCardRecord).mockImplementation(async (data) => ({
-      id: "gc-1",
-      code: data.code,
-      balance: decimal(data.balance) as never,
-      isActive: true,
-      orderId: data.orderId,
-      customerEmail: data.customerEmail,
-      createdAt: new Date(),
-    }))
+    vi.mocked(issueMissingGiftCardsForOrder).mockImplementation(async (params, gen) =>
+      params.balances.map((balance) => ({ code: gen(), balance }))
+    )
     const order = baseOrder({
       items: [
         { id: "i1", productId: "p1", productName: "Tenis", productImage: null, quantity: 1, unitPrice: 200000, sku: "NK-001" },
@@ -180,15 +171,9 @@ describe("issueGiftCardsForOrder", () => {
 
 describe("issueAndSendGiftCardsForOrder", () => {
   it("envía el correo solo cuando se emitió al menos una tarjeta", async () => {
-    vi.mocked(createGiftCardRecord).mockImplementation(async (data) => ({
-      id: "gc-1",
-      code: data.code,
-      balance: decimal(data.balance) as never,
-      isActive: true,
-      orderId: data.orderId,
-      customerEmail: data.customerEmail,
-      createdAt: new Date(),
-    }))
+    vi.mocked(issueMissingGiftCardsForOrder).mockImplementation(async (params, gen) =>
+      params.balances.map((balance) => ({ code: gen(), balance }))
+    )
     const order = baseOrder({
       items: [{ id: "i1", productId: "p1", productName: "Tarjeta", productImage: null, quantity: 1, unitPrice: 100000, sku: "GIFT-CARD-100000" }],
     })

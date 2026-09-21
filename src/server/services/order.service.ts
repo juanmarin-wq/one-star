@@ -18,6 +18,7 @@ import { findVariantsForPricing } from "../repositories/variant.repository"
 import type { Prisma, OrderStatus, PaymentStatus } from "@prisma/client"
 import { getERPAdapter } from "../erp"
 import { sendOrderConfirmationEmail } from "./email.service"
+import { issueAndSendGiftCardsForOrder } from "./gift-card.service"
 import { getShippingCost, type ShippingMethod } from "@/lib/shipping"
 import { isGiftCardSku } from "@/lib/gift-card"
 import {
@@ -520,6 +521,14 @@ export async function changeOrderStatusAndTracking(
 ): Promise<void> {
   if (status === "PAID") {
     await markOrderPaidWithStock(id, trackingNumber)
+    // Marcar como pagado a mano (transferencia) también debe entregar las
+    // tarjetas de regalo. Es idempotente: si el webhook ya las emitió, no repite.
+    const paid = await getOrderById(id)
+    if (paid) {
+      issueAndSendGiftCardsForOrder(paid).catch((error: unknown) => {
+        console.error(`[order] Emisión de tarjeta(s) de regalo falló para pedido ${id}:`, error)
+      })
+    }
     return
   }
   if (status === "CANCELLED") {
