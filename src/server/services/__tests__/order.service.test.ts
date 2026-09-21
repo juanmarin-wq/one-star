@@ -42,6 +42,10 @@ vi.mock("@/server/services/coupon.service", () => ({
   releaseCouponUsageByCode: vi.fn(),
 }))
 
+vi.mock("@/server/services/gift-card.service", () => ({
+  issueAndSendGiftCardsForOrder: vi.fn(async () => undefined),
+}))
+
 vi.mock("@/server/services/email.service", () => ({
   sendOrderConfirmationEmail: vi.fn(),
 }))

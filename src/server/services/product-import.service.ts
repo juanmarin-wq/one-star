@@ -122,11 +122,12 @@ async function planImport(buffer: ArrayBuffer): Promise<{
   }
 
   const skus = validRows.map((r) => r.row.sku)
-  const existingVariants = await findVariantsBySkus(skus)
+  const [existingVariants, categories, brands] = await Promise.all([
+    findVariantsBySkus(skus),
+    findManyCategories(),
+    findManyBrands(),
+  ])
   const existingBySku = new Map(existingVariants.map((v) => [v.sku, v]))
-
-  const categories = await findManyCategories()
-  const brands = await findManyBrands()
 
   const groups = new Map<string, PlannedGroup>()
 
@@ -327,12 +328,13 @@ export async function applyProductImport(
 
   await prisma.$transaction(async (tx) => {
     for (const group of groups) {
-      const categoryId = await resolveCategoryId(tx, group.categoryName, categories, categoryCache)
-      const brandId = await resolveBrandId(tx, group.brandName, brands, brandCache)
-
       let productId = group.existingProductId
 
       if (!productId) {
+        // Solo al crear un producto nuevo se necesita (y se crea si falta) su
+        // categoría y marca; las filas que solo actualizan no deben dejarlas huérfanas.
+        const categoryId = await resolveCategoryId(tx, group.categoryName, categories, categoryCache)
+        const brandId = await resolveBrandId(tx, group.brandName, brands, brandCache)
         const first = group.variants.find((v) => v.kind === "create")!.row
         const slug = await uniqueSlug(tx, slugify(group.name))
         const images: Prisma.ProductImageCreateWithoutProductInput[] = []
@@ -368,6 +370,34 @@ export async function applyProductImport(
         newProducts++
       }
 
+      if (group.existingProductId) {
+        // Variantes nuevas de un producto que ya existe: sus fotos se agregan
+        // a la galería (sin repetir URLs que el producto ya tiene).
+        const current = await tx.productImage.findMany({
+          where: { productId: group.existingProductId },
+          select: { url: true },
+        })
+        const seen = new Set(current.map((i) => i.url))
+        let position = current.length
+        const extra: Prisma.ProductImageCreateManyInput[] = []
+        for (const v of group.variants) {
+          if (v.kind !== "create") continue
+          for (const url of [v.row.image1, v.row.image2, v.row.image3]) {
+            if (url && !seen.has(url)) {
+              seen.add(url)
+              extra.push({
+                productId: group.existingProductId,
+                url,
+                alt: group.name,
+                position: position++,
+                color: v.row.color,
+              })
+            }
+          }
+        }
+        if (extra.length > 0) await tx.productImage.createMany({ data: extra })
+      }
+
       for (const v of group.variants) {
         if (v.kind === "update" && v.existingVariantId) {
           await tx.variant.update({
@@ -399,7 +429,7 @@ export async function applyProductImport(
         }
       }
     }
-  })
+  }, { timeout: 120_000, maxWait: 10_000 })
 
   return { newProducts, newVariants, updatedVariants }
 }

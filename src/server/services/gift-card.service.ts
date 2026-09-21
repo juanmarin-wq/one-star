@@ -4,7 +4,7 @@ import { isGiftCardSku, isValidGiftCardAmount, type GiftCardOption } from "@/lib
 import { generateGiftCardCode } from "@/lib/gift-card-code"
 import {
   findPurchasableGiftCardVariants,
-  createGiftCardRecord,
+  issueMissingGiftCardsForOrder,
   findGiftCardByCode,
   redeemGiftCardAmountRecord,
 } from "../repositories/gift-card.repository"
@@ -35,26 +35,6 @@ export async function getGiftCardOptions(): Promise<GiftCardOption[]> {
     .sort((a, b) => a.amount - b.amount)
 }
 
-const MAX_CODE_ATTEMPTS = 5
-
-async function createUniqueGiftCard(params: {
-  balance: number
-  orderId: string
-  customerEmail: string | null
-}) {
-  let lastError: unknown
-  for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
-    try {
-      return await createGiftCardRecord({ code: generateGiftCardCode(), ...params })
-    } catch (err) {
-      lastError = err
-    }
-  }
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("No se pudo generar un código de tarjeta de regalo único.")
-}
-
 export interface IssuedGiftCard {
   code: string
   balance: number
@@ -69,18 +49,14 @@ export async function issueGiftCardsForOrder(order: OrderDTO): Promise<IssuedGif
   const giftItems = (order.items ?? []).filter((i) => i.sku && isGiftCardSku(i.sku))
   if (giftItems.length === 0) return []
 
-  const issued: IssuedGiftCard[] = []
-  for (const item of giftItems) {
-    for (let unit = 0; unit < item.quantity; unit++) {
-      const card = await createUniqueGiftCard({
-        balance: item.unitPrice,
-        orderId: order.id,
-        customerEmail: order.customerEmail,
-      })
-      issued.push({ code: card.code, balance: card.balance.toNumber() })
-    }
-  }
-  return issued
+  const balances = giftItems.flatMap((item) =>
+    Array.from({ length: item.quantity }, () => item.unitPrice)
+  )
+  // Idempotente: repetir la llamada para un pedido ya atendido no crea nada.
+  return issueMissingGiftCardsForOrder(
+    { orderId: order.id, customerEmail: order.customerEmail, balances },
+    generateGiftCardCode
+  )
 }
 
 /**

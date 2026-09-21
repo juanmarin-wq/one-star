@@ -10,7 +10,7 @@ const m = vi.hoisted(() => ({
     create: vi.fn(),
     update: vi.fn(),
   },
-  variant: { deleteMany: vi.fn() },
+  variant: { deleteMany: vi.fn(), findMany: vi.fn() },
   productImage: { deleteMany: vi.fn() },
 }))
 
@@ -50,6 +50,7 @@ import {
   runInTransaction,
   searchProductsByName,
   updateProductRecord,
+  findVariantsBySkus,
 } from "../product.repository"
 
 beforeEach(() => vi.clearAllMocks())
@@ -230,5 +231,27 @@ describe("runInTransaction", () => {
     const resultado = await runInTransaction(async () => "listo")
 
     expect(resultado).toBe("listo")
+  })
+})
+
+describe("findVariantsBySkus", () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it("no consulta la base si no hay SKUs", async () => {
+    expect(await findVariantsBySkus([])).toEqual([])
+    expect(m.variant.findMany).not.toHaveBeenCalled()
+  })
+
+  it("trae el erpId del producto para poder respetar los productos del ERP", async () => {
+    m.variant.findMany.mockResolvedValue([])
+    await findVariantsBySkus(["A-1"])
+    expect(m.variant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { sku: { in: ["A-1"] } },
+        select: expect.objectContaining({
+          product: { select: { id: true, slug: true, name: true, erpId: true } },
+        }),
+      })
+    )
   })
 })

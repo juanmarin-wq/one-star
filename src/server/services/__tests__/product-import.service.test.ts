@@ -8,6 +8,7 @@ const txMock = {
     create: vi.fn(async (args: { data: { name: string } }) => ({ id: "new-product-id", ...args.data })),
     findUnique: vi.fn(async () => null),
   },
+  productImage: { findMany: vi.fn(async () => [] as { url: string }[]), createMany: vi.fn(async () => ({ count: 0 })) },
   variant: { create: vi.fn(async () => ({ id: "new-variant-id" })), update: vi.fn(async () => ({ id: "updated" })) },
   category: { upsert: vi.fn(async (args: { create: { name: string } }) => ({ id: "new-category-id", ...args.create })) },
   brand: { upsert: vi.fn(async (args: { create: { name: string } }) => ({ id: "new-brand-id", ...args.create })) },
@@ -166,5 +167,44 @@ describe("applyProductImport", () => {
     expect(txMock.category.upsert).toHaveBeenCalledTimes(1)
     expect(txMock.brand.upsert).toHaveBeenCalledTimes(1)
     expect(txMock.product.create).toHaveBeenCalledTimes(1)
+  })
+
+  it("una fila que solo actualiza stock no crea categoría ni marca huérfanas", async () => {
+    vi.mocked(findVariantsBySkus).mockResolvedValue([
+      {
+        id: "v1", sku: "NK-1", size: "39", color: "Negro", stock: 1,
+        sizeUS: null, sizeCM: null, sizeEUR: null,
+        product: { id: "p1", slug: "nike-pegasus-41", name: "Nike Pegasus 41", erpId: null },
+      },
+    ] as never)
+    const buffer = buildBuffer([baseRow({ sku: "NK-1", categoryName: "Categoria Mal Escrita", brandName: "Marca Rara" })])
+    const preview = await previewProductImport(buffer)
+    await applyProductImport(buffer, preview.fingerprint)
+    expect(txMock.variant.update).toHaveBeenCalledTimes(1)
+    expect(txMock.category.upsert).not.toHaveBeenCalled()
+    expect(txMock.brand.upsert).not.toHaveBeenCalled()
+  })
+
+  it("guarda las fotos de una variante nueva agregada a un producto existente", async () => {
+    vi.mocked(findVariantsBySkus).mockResolvedValue([
+      {
+        id: "v1", sku: "NK-1", size: "39", color: "Negro", stock: 1,
+        sizeUS: null, sizeCM: null, sizeEUR: null,
+        product: { id: "p1", slug: "nike-pegasus-41", name: "Nike Pegasus 41", erpId: null },
+      },
+    ] as never)
+    txMock.productImage.findMany.mockResolvedValueOnce([{ url: "https://ejemplo.com/vieja.jpg" }])
+    const buffer = buildBuffer([
+      baseRow({ sku: "NK-1" }),
+      baseRow({ sku: "NK-2", color: "Azul", image1: "https://ejemplo.com/azul.jpg" }),
+    ])
+    const preview = await previewProductImport(buffer)
+    await applyProductImport(buffer, preview.fingerprint)
+    expect(txMock.variant.create).toHaveBeenCalledTimes(1)
+    expect(txMock.productImage.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({ productId: "p1", url: "https://ejemplo.com/azul.jpg", color: "Azul", position: 1 }),
+      ],
+    })
   })
 })
