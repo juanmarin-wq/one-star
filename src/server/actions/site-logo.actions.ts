@@ -7,7 +7,7 @@ import {
   updateStoreLogoTheme
 } from "@/server/services/site-logo.service"
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import { getActionError } from "@/server/actions/action-error"
 import { EntityIdSchema } from "@/server/validators/common.validator"
 import {
@@ -25,7 +25,7 @@ export async function addStoreLogoAction(data: {
 }) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const input = StoreLogoInputSchema.parse(data)
     const newLogo = await addStoreLogo(input)
     revalidatePath("/admin/landing-builder")
@@ -41,7 +41,7 @@ export async function addStoreLogoAction(data: {
 export async function setPrimaryStoreLogoAction(id: string, type: string) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await setPrimaryStoreLogo(
       EntityIdSchema.parse(id),
       StoreLogoTypeSchema.parse(type),
@@ -59,7 +59,7 @@ export async function setPrimaryStoreLogoAction(id: string, type: string) {
 export async function updateStoreLogoThemeAction(id: string, theme: string) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await updateStoreLogoTheme(
       EntityIdSchema.parse(id),
       StoreLogoThemeSchema.parse(theme),
@@ -77,7 +77,7 @@ export async function updateStoreLogoThemeAction(id: string, theme: string) {
 export async function deleteStoreLogoAction(id: string) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await deleteStoreLogo(EntityIdSchema.parse(id))
     revalidatePath("/admin/landing-builder")
     revalidatePath("/", "layout")

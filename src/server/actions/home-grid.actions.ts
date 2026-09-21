@@ -6,7 +6,7 @@ import {
   updateGridBlock as updateGridBlockService,
   deleteGridBlock as deleteGridBlockService,
 } from "@/server/services/home-grid.service"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import { getActionError } from "@/server/actions/action-error"
 import { ActiveStateSchema, EntityIdSchema } from "@/server/validators/common.validator"
 import { HomeGridBlockSchema } from "@/server/validators/home-grid.validator"
@@ -28,7 +28,7 @@ export async function createGridBlock(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const input = HomeGridBlockSchema.parse(parseForm(formData))
     await createGridBlockService(input)
     revalidatePath("/admin/landing-builder")
@@ -48,7 +48,7 @@ export async function updateGridBlock(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const validId = EntityIdSchema.parse(id)
     const input = HomeGridBlockSchema.parse(parseForm(formData))
     await updateGridBlockService(validId, input)
@@ -68,7 +68,7 @@ export async function deleteGridBlock(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await deleteGridBlockService(EntityIdSchema.parse(id))
     revalidatePath("/admin/landing-builder")
     revalidatePath("/")
@@ -87,7 +87,7 @@ export async function toggleGridBlockActive(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const validId = EntityIdSchema.parse(id)
     const validCurrent = ActiveStateSchema.parse(current)
     await updateGridBlockService(validId, { isActive: !validCurrent })

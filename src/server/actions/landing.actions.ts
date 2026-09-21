@@ -2,7 +2,7 @@ import "server-only"
 
 import { revalidatePath } from "next/cache"
 import type { Prisma, LandingSectionType } from "@prisma/client"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import {
   createLandingSection,
   deleteLandingSection,
@@ -25,7 +25,7 @@ function revalidateLanding() {
 export async function updateLandingSectionPositionsAction(updates: { id: string; position: number }[]) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await updateLandingSectionPositions(LandingSectionPositionsSchema.parse(updates))
     revalidateLanding()
     return { success: true }
@@ -38,7 +38,7 @@ export async function updateLandingSectionPositionsAction(updates: { id: string;
 export async function toggleLandingSectionActiveAction(id: string, isActive: boolean) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await setLandingSectionActive(
       EntityIdSchema.parse(id),
       ActiveStateSchema.parse(isActive),
@@ -54,7 +54,7 @@ export async function toggleLandingSectionActiveAction(id: string, isActive: boo
 export async function updateLandingSectionConfigAction(id: string, config: Prisma.InputJsonValue) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const validId = EntityIdSchema.parse(id)
     const validConfig = LandingSectionConfigSchema.parse(config) as Prisma.InputJsonObject
     await updateLandingSectionConfig(validId, validConfig)
@@ -69,7 +69,7 @@ export async function updateLandingSectionConfigAction(id: string, config: Prism
 export async function createLandingSectionAction(type: LandingSectionType) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const validType = LandingSectionTypeSchema.parse(type)
     const newSection = await createLandingSection(validType)
     revalidateLanding()
@@ -83,7 +83,7 @@ export async function createLandingSectionAction(type: LandingSectionType) {
 export async function deleteLandingSectionAction(id: string) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await deleteLandingSection(EntityIdSchema.parse(id))
     revalidateLanding()
     return { success: true }

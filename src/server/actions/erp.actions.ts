@@ -4,14 +4,14 @@ import {
   runErpEndpointDiagnostics,
   syncCatalogFromERP,
 } from "@/server/services/erp-sync.service"
-import { requireAdmin, UnauthorizedError } from "@/server/auth/require-admin"
+import { requireSuperAdmin, UnauthorizedError } from "@/server/auth/require-admin"
 import { sanitizeErpError } from "@/server/erp/erp-error"
 import { updateErpSyncSchedule } from "@/server/services/erp-sync-scheduler.service"
 import type { ErpSyncConfigInput } from "@/server/validators/erp-sync-config.validator"
 
 export async function syncCatalogAction() {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const result = await syncCatalogFromERP("MANUAL")
     return result
   } catch (error) {
@@ -22,7 +22,7 @@ export async function syncCatalogAction() {
 /** Probe explícito, autenticado y de solo lectura para el panel de integraciones. */
 export async function diagnoseErpEndpointsAction() {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     return await runErpEndpointDiagnostics()
   } catch (error) {
     if (error instanceof UnauthorizedError) {
@@ -50,7 +50,7 @@ export async function diagnoseErpEndpointsAction() {
 /** Guarda la programación automática; la sincronización manual no depende de ella. */
 export async function saveErpSyncConfigAction(input: ErpSyncConfigInput) {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const schedule = await updateErpSyncSchedule(input)
     return { success: true as const, schedule }
   } catch (error) {

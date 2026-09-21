@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import {
   updateMetaPixelSettings,
   updateStoreInfo,
@@ -31,7 +31,7 @@ export async function updateStoreInfoAction(
   formData: FormData,
 ): Promise<StoreSettingsActionResult> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const input = StoreInfoInputSchema.parse({
       storeName: text(formData, "storeName"),
       contactEmail: text(formData, "contactEmail").trim(),
@@ -51,7 +51,7 @@ export async function updateMetaPixelAction(
   formData: FormData,
 ): Promise<StoreSettingsActionResult> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const input = MetaPixelInputSchema.parse({
       enabled: checkbox(formData, "enabled"),
       pixelId: text(formData, "pixelId").trim(),

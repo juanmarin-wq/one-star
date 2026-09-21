@@ -6,13 +6,13 @@ import {
   toggleCouponActive as toggleCouponActiveService,
   couponCodeExists,
 } from "@/server/services/coupon.service"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 
 export async function createCoupon(
   formData: FormData
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
   } catch {
     return { success: false, error: "No autorizado." }
   }
@@ -62,7 +62,7 @@ export async function toggleCouponActive(
   current: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await toggleCouponActiveService(id, current)
     revalidatePath("/admin/cupones")
     return { success: true }

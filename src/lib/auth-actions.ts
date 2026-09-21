@@ -54,6 +54,7 @@ export async function prepareAdminSignIn(
     name: admin.name,
     passwordHash: admin.passwordHash,
     userType: "admin",
+    adminRole: admin.role,
   })
 
   resetAdminLoginAttempts(ip, email)
@@ -92,6 +93,8 @@ type AuthRecordInput = {
   name: string
   passwordHash: string
   userType: "admin" | "customer"
+  /** Solo para userType "admin" — copia de AdminUser.role. */
+  adminRole?: string
 }
 
 async function upsertAuthRecords({
@@ -100,6 +103,7 @@ async function upsertAuthRecords({
   name,
   passwordHash,
   userType,
+  adminRole,
 }: AuthRecordInput): Promise<void> {
   const now = new Date()
 
@@ -112,12 +116,14 @@ async function upsertAuthRecords({
       name,
       emailVerified: true,
       userType,
+      adminRole: adminRole ?? null,
       createdAt: now,
       updatedAt: now,
     },
     update: {
       name,
       userType,
+      adminRole: adminRole ?? null,
       updatedAt: now,
     },
   })

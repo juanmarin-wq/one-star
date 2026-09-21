@@ -402,6 +402,8 @@ model AuthUser {
   emailVerified Boolean      @default(false)
   image         String?
   userType      String       @default("customer")
+  /** Copia de AdminUser.role al iniciar sesión; null en cuentas de cliente. */
+  adminRole     String?
   createdAt     DateTime
   updatedAt     DateTime
   sessions      AuthSession[]

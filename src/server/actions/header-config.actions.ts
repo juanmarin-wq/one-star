@@ -2,7 +2,7 @@ import "server-only"
 
 import { updateHeaderConfig } from "@/server/services/header-config.service"
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import { HeaderConfigInputSchema } from "@/server/validators/header-config.validator"
 
 export async function updateHeaderConfigAction(data: {
@@ -22,7 +22,7 @@ export async function updateHeaderConfigAction(data: {
 }) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     // El caller puede pasar el registro completo; se descartan campos de solo lectura
     const { id: _id, updatedAt: _updatedAt, ...safeData } =
       data as typeof data & { id?: string; updatedAt?: Date }

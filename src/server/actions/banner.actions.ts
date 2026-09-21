@@ -7,7 +7,7 @@ import {
   deleteBanner as deleteBannerService,
   toggleBannerActive as toggleBannerActiveService,
 } from "@/server/services/banner.service"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import { getActionError } from "@/server/actions/action-error"
 import { BannerInputSchema } from "@/server/validators/banner.validator"
 import { ActiveStateSchema, EntityIdSchema } from "@/server/validators/common.validator"
@@ -31,7 +31,7 @@ export async function createBanner(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const input = BannerInputSchema.parse(parseBannerForm(formData))
     await createBannerService(input)
     revalidatePath("/admin/landing-builder")
@@ -51,7 +51,7 @@ export async function updateBanner(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const validId = EntityIdSchema.parse(id)
     const input = BannerInputSchema.parse(parseBannerForm(formData))
     await updateBannerService(validId, input)
@@ -71,7 +71,7 @@ export async function deleteBanner(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await deleteBannerService(EntityIdSchema.parse(id))
     revalidatePath("/admin/landing-builder")
     revalidatePath("/")
@@ -90,7 +90,7 @@ export async function toggleBannerActive(
 ): Promise<{ success: boolean; error?: string }> {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await toggleBannerActiveService(
       EntityIdSchema.parse(id),
       ActiveStateSchema.parse(current),

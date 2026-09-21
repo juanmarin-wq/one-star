@@ -1,11 +1,11 @@
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import { getStoreSettings } from "@/server/services/store-settings.service"
 import StoreInfoForm from "@/components/admin/StoreInfoForm"
 
 export const dynamic = "force-dynamic"
 
 export default async function ConfiguracionPage() {
-  await requireAdmin()
+  await requireSuperAdmin()
   const settings = await getStoreSettings()
 
   return (

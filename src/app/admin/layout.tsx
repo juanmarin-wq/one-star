@@ -35,7 +35,11 @@ export default async function AdminLayout({
     <div className="fixed inset-0 z-50 flex bg-[#F5F5F5]">
       <AdminSidebar
         userName={session!.user.name ?? "Admin"}
-        userRole="SUPER_ADMIN"
+        userRole={
+          (session!.user as { adminRole?: string | null }).adminRole === "INVENTORY_OPERATOR"
+            ? "INVENTORY_OPERATOR"
+            : "SUPER_ADMIN"
+        }
       />
       <main className="flex-1 overflow-y-auto">{children}</main>
       <AdminHotkeys />

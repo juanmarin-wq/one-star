@@ -2,7 +2,7 @@ import "server-only"
 
 import { updateTopBanner } from "@/server/services/top-banner.service"
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import { getActionError } from "@/server/actions/action-error"
 import { TopBannerInputSchema } from "@/server/validators/top-banner.validator"
 
@@ -22,7 +22,7 @@ export async function updateTopBannerAction(data: {
 }) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const input = TopBannerInputSchema.parse(data)
     const updated = await updateTopBanner(input)
     revalidatePath("/admin/landing-builder")

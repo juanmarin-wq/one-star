@@ -30,6 +30,13 @@ export const auth = betterAuth({
         fieldName: "userType",
         input: false,
       },
+      adminRole: {
+        type: "string",
+        required: false,
+        fieldName: "adminRole",
+        // Copia de AdminUser.role al iniciar sesión; nunca editable por el cliente.
+        input: false,
+      },
     },
   },
   session: {

@@ -1,7 +1,7 @@
 import "server-only"
 
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import {
   createNavigationItem,
   deleteNavigationItem,
@@ -24,7 +24,7 @@ function revalidateNavigation() {
 export async function createNavigationItemAction(label: string, href: string, isSale: boolean) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const input = NavigationItemInputSchema.parse({ label, href, isSale })
     const item = await createNavigationItem(input)
     revalidateNavigation()
@@ -38,7 +38,7 @@ export async function createNavigationItemAction(label: string, href: string, is
 export async function updateNavigationItemAction(id: string, label: string, href: string, isSale: boolean) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const validId = EntityIdSchema.parse(id)
     const input = NavigationItemInputSchema.parse({ label, href, isSale })
     await updateNavigationItem(validId, input)
@@ -53,7 +53,7 @@ export async function updateNavigationItemAction(id: string, label: string, href
 export async function deleteNavigationItemAction(id: string) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await deleteNavigationItem(EntityIdSchema.parse(id))
     revalidateNavigation()
     return { success: true }
@@ -66,7 +66,7 @@ export async function deleteNavigationItemAction(id: string) {
 export async function updateNavigationPositionsAction(updates: { id: string; position: number }[]) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await updateNavigationPositions(NavigationPositionsSchema.parse(updates))
     revalidateNavigation()
     return { success: true }
@@ -79,7 +79,7 @@ export async function updateNavigationPositionsAction(updates: { id: string; pos
 export async function toggleNavigationItemActiveAction(id: string, isActive: boolean) {
   "use server"
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await setNavigationItemActive(
       EntityIdSchema.parse(id),
       ActiveStateSchema.parse(isActive),

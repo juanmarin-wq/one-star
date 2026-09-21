@@ -41,3 +41,31 @@ export async function getAdminSession() {
   const userType = (session?.user as { userType?: string } | undefined)?.userType
   return session && userType === "admin" ? session : null
 }
+
+export type AdminRole = "SUPER_ADMIN" | "INVENTORY_OPERATOR"
+
+/**
+ * Rol del admin autenticado, o `null` si no hay sesión de admin. Una sesión
+ * de admin sin `adminRole` migrado (creada antes de este campo) se trata
+ * como `SUPER_ADMIN` — nunca se bloquea por accidente a un admin ya activo.
+ */
+export async function getAdminRole(): Promise<AdminRole | null> {
+  const session = await getAdminSession()
+  if (!session) return null
+  const role = (session.user as { adminRole?: string | null }).adminRole
+  return role === "INVENTORY_OPERATOR" ? "INVENTORY_OPERATOR" : "SUPER_ADMIN"
+}
+
+/**
+ * Como {@link requireAdmin}, pero además exige rol `SUPER_ADMIN`. Úsalo en
+ * toda Server Action fuera del alcance de "Operador de Inventario"
+ * (catálogo, importación de productos, pedidos son las únicas excepciones).
+ */
+export async function requireSuperAdmin() {
+  const session = await requireAdmin()
+  const role = (session.user as { adminRole?: string | null }).adminRole
+  if (role === "INVENTORY_OPERATOR") {
+    throw new UnauthorizedError("Esta acción requiere el rol Super Admin.")
+  }
+  return session
+}

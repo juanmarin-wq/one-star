@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import {
   createStore,
   deleteStore,
@@ -27,7 +27,7 @@ function isUniqueErpLinkError(error: unknown): boolean {
 
 export async function createStoreAction(data: unknown) {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const parsed = storeLocationSchema.safeParse(data)
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" }
@@ -46,7 +46,7 @@ export async function createStoreAction(data: unknown) {
 
 export async function updateStoreAction(id: string, data: unknown) {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const parsed = storeLocationSchema.safeParse(data)
     if (!parsed.success) {
       return { success: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" }
@@ -65,7 +65,7 @@ export async function updateStoreAction(id: string, data: unknown) {
 
 export async function deleteStoreAction(id: string) {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await deleteStore(id)
     revalidateStores()
     return { success: true }
@@ -77,7 +77,7 @@ export async function deleteStoreAction(id: string) {
 
 export async function toggleStoreActiveAction(id: string, isActive: boolean) {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await setStoreActive(id, isActive)
     revalidateStores()
     return { success: true }

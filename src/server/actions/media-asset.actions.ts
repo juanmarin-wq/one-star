@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import {
   getMediaAssets,
   deleteMediaAsset,
@@ -16,7 +16,7 @@ export async function getMediaAssetsAction(options?: {
   offset?: number
 }): Promise<{ success: boolean; data?: { items: MediaAssetDTO[]; total: number }; error?: string }> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const data = await getMediaAssets(options)
     return { success: true, data }
   } catch (error) {
@@ -27,7 +27,7 @@ export async function getMediaAssetsAction(options?: {
 
 export async function deleteMediaAssetAction(id: string): Promise<{ success: boolean; error?: string }> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     await deleteMediaAsset(id)
     revalidatePath("/admin/archivos")
     return { success: true }
@@ -39,7 +39,7 @@ export async function deleteMediaAssetAction(id: string): Promise<{ success: boo
 
 export async function syncMediaAssetsAction(): Promise<{ success: boolean; synced?: number; error?: string }> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const synced = await autoSyncExistingAssets()
     revalidatePath("/admin/archivos")
     return { success: true, synced }

@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, AdminRole } from "@prisma/client"
 import bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
@@ -11,6 +11,7 @@ const prisma = new PrismaClient()
  *   ADMIN_EMAIL    — requerido
  *   ADMIN_PASSWORD — opcional; si falta se genera una aleatoria y se muestra una vez
  *   ADMIN_NAME     — opcional (default: "Admin One Star")
+ *   ADMIN_ROLE     — opcional: "SUPER_ADMIN" (default) | "INVENTORY_OPERATOR"
  */
 async function main() {
   const email = process.env.ADMIN_EMAIL
@@ -20,19 +21,33 @@ async function main() {
     return
   }
 
+  const roleInput = process.env.ADMIN_ROLE?.trim().toUpperCase()
+  if (roleInput && roleInput !== "SUPER_ADMIN" && roleInput !== "INVENTORY_OPERATOR") {
+    console.error('ADMIN_ROLE debe ser "SUPER_ADMIN" o "INVENTORY_OPERATOR".')
+    process.exitCode = 1
+    return
+  }
+
   const generatedPassword = !process.env.ADMIN_PASSWORD
   const password = process.env.ADMIN_PASSWORD ?? randomBytes(12).toString("base64url")
   const name = process.env.ADMIN_NAME ?? "Admin One Star"
   const passwordHash = bcrypt.hashSync(password, 10)
 
+  // Sin ADMIN_ROLE explícito: si ya existe, se conserva su rol actual (nunca
+  // se degrada/asciende un admin existente por accidente al re-ejecutar el
+  // script); si es nuevo, nace SUPER_ADMIN.
+  const existing = roleInput ? null : await prisma.adminUser.findUnique({ where: { email } })
+  const role = (roleInput as AdminRole | undefined) ?? existing?.role ?? "SUPER_ADMIN"
+
   const admin = await prisma.adminUser.upsert({
     where: { email },
-    update: { passwordHash, name, role: "SUPER_ADMIN" },
-    create: { email, passwordHash, name, role: "SUPER_ADMIN" },
+    update: { passwordHash, name, role },
+    create: { email, passwordHash, name, role },
   })
 
   console.log("Admin creado/actualizado:")
   console.log(`Email: ${admin.email}`)
+  console.log(`Rol: ${admin.role}`)
   if (generatedPassword) {
     console.log(`Password generada (guárdala ahora, no se volverá a mostrar): ${password}`)
   } else {

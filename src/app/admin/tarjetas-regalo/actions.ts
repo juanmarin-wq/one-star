@@ -1,6 +1,6 @@
 "use server"
 
-import { requireAdmin } from "@/server/auth/require-admin"
+import { requireSuperAdmin } from "@/server/auth/require-admin"
 import {
   searchGiftCard,
   redeemGiftCard,
@@ -19,7 +19,7 @@ function getErrorMessage(error: unknown): string {
 
 export async function searchGiftCardAction(code: string): Promise<GiftCardActionResult> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const result = await searchGiftCard(code)
     if (!result) return { success: false, error: "Código no encontrado." }
     return { success: true, data: result }
@@ -30,7 +30,7 @@ export async function searchGiftCardAction(code: string): Promise<GiftCardAction
 
 export async function redeemGiftCardAction(code: string, amount: number): Promise<GiftCardActionResult> {
   try {
-    await requireAdmin()
+    await requireSuperAdmin()
     const result = await redeemGiftCard(code, amount)
     return { success: true, data: result }
   } catch (error: unknown) {

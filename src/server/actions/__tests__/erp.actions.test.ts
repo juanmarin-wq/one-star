@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => {
   class UnauthorizedError extends Error {}
   return {
     UnauthorizedError,
-    requireAdmin: vi.fn(),
+    requireSuperAdmin: vi.fn(),
     runErpEndpointDiagnostics: vi.fn(),
     updateErpSyncSchedule: vi.fn(),
     syncCatalogFromERP: vi.fn(),
@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("@/server/auth/require-admin", () => ({
   UnauthorizedError: mocks.UnauthorizedError,
-  requireAdmin: mocks.requireAdmin,
+  requireSuperAdmin: mocks.requireSuperAdmin,
 }))
 vi.mock("@/server/services/erp-sync.service", () => ({
   runErpEndpointDiagnostics: mocks.runErpEndpointDiagnostics,
@@ -35,7 +35,7 @@ describe("diagnoseErpEndpointsAction", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("no ejecuta el diagnóstico cuando no hay sesión admin", async () => {
-    mocks.requireAdmin.mockRejectedValue(new mocks.UnauthorizedError("No autorizado."))
+    mocks.requireSuperAdmin.mockRejectedValue(new mocks.UnauthorizedError("No autorizado."))
 
     const result = await diagnoseErpEndpointsAction()
 
@@ -44,7 +44,7 @@ describe("diagnoseErpEndpointsAction", () => {
   })
 
   it("modela una sesión expirada como acceso denegado y no como fallo ERP", async () => {
-    mocks.requireAdmin.mockRejectedValue(new mocks.UnauthorizedError("Sesión expirada"))
+    mocks.requireSuperAdmin.mockRejectedValue(new mocks.UnauthorizedError("Sesión expirada"))
 
     const result = await diagnoseErpEndpointsAction()
 
@@ -54,7 +54,7 @@ describe("diagnoseErpEndpointsAction", () => {
   })
 
   it("ejecuta el diagnóstico únicamente después de autorizar al admin", async () => {
-    mocks.requireAdmin.mockResolvedValue({ user: { userType: "admin" } })
+    mocks.requireSuperAdmin.mockResolvedValue({ user: { userType: "admin" } })
     mocks.runErpEndpointDiagnostics.mockResolvedValue({
       checkedAt: "2026-08-06T12:00:00.000Z",
       results: [],
@@ -62,7 +62,7 @@ describe("diagnoseErpEndpointsAction", () => {
 
     const result = await diagnoseErpEndpointsAction()
 
-    expect(mocks.requireAdmin).toHaveBeenCalledOnce()
+    expect(mocks.requireSuperAdmin).toHaveBeenCalledOnce()
     expect(mocks.runErpEndpointDiagnostics).toHaveBeenCalledOnce()
     expect(result).not.toHaveProperty("accessDenied")
   })
@@ -72,7 +72,7 @@ describe("saveErpSyncConfigAction", () => {
   beforeEach(() => vi.clearAllMocks())
 
   it("no persiste cambios cuando no hay sesión administrativa", async () => {
-    mocks.requireAdmin.mockRejectedValue(new mocks.UnauthorizedError("No autorizado."))
+    mocks.requireSuperAdmin.mockRejectedValue(new mocks.UnauthorizedError("No autorizado."))
 
     const result = await saveErpSyncConfigAction({ enabled: false, intervalMinutes: 30 })
 
@@ -81,7 +81,7 @@ describe("saveErpSyncConfigAction", () => {
   })
 
   it("guarda únicamente después de autorizar al administrador", async () => {
-    mocks.requireAdmin.mockResolvedValue({ user: { userType: "admin" } })
+    mocks.requireSuperAdmin.mockResolvedValue({ user: { userType: "admin" } })
     mocks.updateErpSyncSchedule.mockResolvedValue({
       enabled: true,
       intervalMinutes: 60,
@@ -91,7 +91,7 @@ describe("saveErpSyncConfigAction", () => {
     const result = await saveErpSyncConfigAction({ enabled: true, intervalMinutes: 60 })
 
     expect(result).toMatchObject({ success: true })
-    expect(mocks.requireAdmin).toHaveBeenCalledOnce()
+    expect(mocks.requireSuperAdmin).toHaveBeenCalledOnce()
     expect(mocks.updateErpSyncSchedule).toHaveBeenCalledWith({
       enabled: true,
       intervalMinutes: 60,
@@ -99,7 +99,7 @@ describe("saveErpSyncConfigAction", () => {
   })
 
   it("devuelve al panel la explicación cuando el ERP impide activar el automático", async () => {
-    mocks.requireAdmin.mockResolvedValue({ user: { userType: "admin" } })
+    mocks.requireSuperAdmin.mockResolvedValue({ user: { userType: "admin" } })
     mocks.updateErpSyncSchedule.mockRejectedValue(
       new Error(
         "El ERP configurado no ofrece sincronización de catálogo. Conecta un ERP compatible antes de activar la programación automática."
@@ -116,7 +116,7 @@ describe("saveErpSyncConfigAction", () => {
   })
 
   it("mantiene disponible la sincronización manual sin consultar la programación", async () => {
-    mocks.requireAdmin.mockResolvedValue({ user: { userType: "admin" } })
+    mocks.requireSuperAdmin.mockResolvedValue({ user: { userType: "admin" } })
     mocks.syncCatalogFromERP.mockResolvedValue({ success: true, processedCount: 2 })
 
     await expect(syncCatalogAction()).resolves.toMatchObject({ success: true })
