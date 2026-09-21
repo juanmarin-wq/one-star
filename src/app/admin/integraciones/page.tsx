@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { getErpSyncStatus } from "@/server/services/erp-sync.service"
 import { getStoreSettings } from "@/server/services/store-settings.service"
 import { getAdminSession } from "@/server/auth/require-admin"
@@ -27,6 +28,14 @@ export default async function IntegrationsPage() {
         })}:${status.catalogSyncAvailable ? "catalog" : "no-catalog"}`}
         initialStatus={status}
       />
+      <div className="mx-auto max-w-5xl px-6 pb-6 sm:px-8">
+        <Link
+          href="/admin/integraciones/conectar-erp"
+          className="inline-block rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Conectar un ERP (probar credenciales + revisar duplicados)
+        </Link>
+      </div>
       <div className="mx-auto max-w-5xl px-6 pb-10 sm:px-8">
         <h2 className="mb-4 text-xl font-bold tracking-tight text-[#1C1C1C]">Marketing</h2>
         <MetaPixelSettingsForm settings={settings} />

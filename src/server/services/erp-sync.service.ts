@@ -291,6 +291,9 @@ async function runCatalogSync(options: CatalogSyncOptions): Promise<ERPCatalogSy
           basePrice: group.basePrice,
           unitOfMeasure: group.unitOfMeasure,
           ...(publishedByErp === undefined ? {} : { isPublished: publishedByErp }),
+          // Completa el erpId de un producto manual ya vinculado (por slug)
+          // al código del ERP; nunca pisa uno que ya tenía asignado.
+          ...(existingProduct.erpId === null ? { erpId: group.erpId } : {}),
         })
         if (existingProduct.gender == null && group.gender) {
           genderCandidates.push({ erpId: group.erpId, gender: group.gender })

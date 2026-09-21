@@ -123,6 +123,12 @@ export async function updateCatalogProduct(
     unitOfMeasure?: string
     brandId?: string | null
     isPublished?: boolean
+    /**
+     * Solo se debe pasar para completar un `erpId` que hoy es `null` (un
+     * producto manual vinculado por el asistente de conexión). Nunca pisa un
+     * `erpId` ya asignado — el caller decide cuándo incluirlo.
+     */
+    erpId?: string
   }
 ) {
   return prisma.product.update({ where: { id }, data })

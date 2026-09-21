@@ -183,6 +183,23 @@ export async function updateProductRecord(
   return prisma.product.update({ where: { id }, data, include: productInclude })
 }
 
+/**
+ * Productos cargados a mano (sin `erpId`) — usado por el asistente de
+ * conexión ERP para detectar posibles duplicados antes de la primera
+ * sincronización real.
+ */
+export async function findManualProductNames() {
+  return prisma.product.findMany({
+    where: { erpId: null },
+    select: { id: true, name: true, slug: true },
+  })
+}
+
+/** Cambia el slug de un producto manual para que el sincronizador lo reconozca como el mismo del ERP. */
+export async function updateProductSlug(id: string, slug: string) {
+  return prisma.product.update({ where: { id }, data: { slug } })
+}
+
 export interface AdminProductRelationsUpdate {
   name: string
   slug: string
