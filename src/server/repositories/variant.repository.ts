@@ -67,3 +67,36 @@ export async function findVariantsForPricing(variantIds: string[]) {
     },
   })
 }
+
+/**
+ * Una variante con lo necesario para construir un ítem de carrito (usado por
+ * el chatbot al agregar algo que ya encontró con `buscar_productos`): precio
+ * y stock siempre se leen aquí, nunca se confía en lo que traiga el modelo.
+ */
+export async function findVariantForCartDisplay(variantId: string) {
+  return prisma.variant.findUnique({
+    where: { id: variantId },
+    select: {
+      id: true,
+      sku: true,
+      size: true,
+      color: true,
+      stock: true,
+      productId: true,
+      product: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          basePrice: true,
+          isOnSale: true,
+          salePrice: true,
+          isPublished: true,
+          availableOnline: true,
+          brand: { select: { name: true } },
+          images: { orderBy: { position: "asc" }, take: 1, select: { url: true } },
+        },
+      },
+    },
+  })
+}

@@ -361,6 +361,10 @@ NEXT_PUBLIC_EPAYCO_TEST=true        # "true" en staging, "false" en producción
 CLOUDINARY_CLOUD_NAME=...        # Nombre del cloud (Dashboard > Settings)
 CLOUDINARY_API_KEY=...           # API Key
 CLOUDINARY_API_SECRET=...        # API Secret (solo servidor)
+
+# Chatbot de ventas (ver src/server/services/ai-chat.service.ts)
+ANTHROPIC_API_KEY=...            # Sin esto, el chat responde "no disponible" en vez de romper la página
+ANTHROPIC_MODEL=claude-sonnet-5  # Opcional; ya es el default
 ```
 
 **Nota sobre el IVA de Loggro (`LOGGRO_IVA_RATE`).** Loggro entrega el precio

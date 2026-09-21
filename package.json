@@ -23,6 +23,7 @@
     "db:seed:demo:clean": "tsx prisma/seed-demo.ts --clean"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
     "@fontsource/barlow": "^5.2.8",
     "@fontsource/montserrat": "^5.2.8",
