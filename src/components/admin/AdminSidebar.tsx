@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
+import { INVENTORY_OPERATOR_HREFS } from "@/lib/admin-access"
 import { signOut } from "@/lib/auth-client"
 
 interface AdminSidebarProps {
@@ -179,17 +180,6 @@ const roleLabel: Record<string, string> = {
   SUPER_ADMIN: "Super Admin",
   INVENTORY_OPERATOR: "Operador de Inventario",
 }
-
-/** Único alcance de "Operador de Inventario" — todo lo demás requiere Super Admin. */
-const INVENTORY_OPERATOR_HREFS = new Set([
-  "/admin",
-  "/admin/pedidos",
-  "/admin/productos",
-  "/admin/productos/importar",
-  "/admin/categorias",
-  "/admin/marcas",
-  "/admin/colores",
-])
 
 export default function AdminSidebar({ userName, userRole }: AdminSidebarProps) {
   const pathname = usePathname()

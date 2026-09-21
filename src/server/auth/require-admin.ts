@@ -1,6 +1,7 @@
 import "server-only"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
+import { normalizeAdminRole, type AdminRole } from "@/lib/admin-access"
 
 /**
  * Error de autorización. Se lanza cuando quien invoca una Server Action o ruta
@@ -42,7 +43,7 @@ export async function getAdminSession() {
   return session && userType === "admin" ? session : null
 }
 
-export type AdminRole = "SUPER_ADMIN" | "INVENTORY_OPERATOR"
+export type { AdminRole } from "@/lib/admin-access"
 
 /**
  * Rol del admin autenticado, o `null` si no hay sesión de admin. Una sesión
@@ -52,8 +53,7 @@ export type AdminRole = "SUPER_ADMIN" | "INVENTORY_OPERATOR"
 export async function getAdminRole(): Promise<AdminRole | null> {
   const session = await getAdminSession()
   if (!session) return null
-  const role = (session.user as { adminRole?: string | null }).adminRole
-  return role === "INVENTORY_OPERATOR" ? "INVENTORY_OPERATOR" : "SUPER_ADMIN"
+  return normalizeAdminRole((session.user as { adminRole?: string | null }).adminRole)
 }
 
 /**

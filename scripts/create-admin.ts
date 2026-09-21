@@ -21,7 +21,7 @@ async function main() {
     return
   }
 
-  const roleInput = process.env.ADMIN_ROLE?.trim().toUpperCase()
+  const roleInput = process.env.ADMIN_ROLE?.trim().toUpperCase() || undefined
   if (roleInput && roleInput !== "SUPER_ADMIN" && roleInput !== "INVENTORY_OPERATOR") {
     console.error('ADMIN_ROLE debe ser "SUPER_ADMIN" o "INVENTORY_OPERATOR".')
     process.exitCode = 1
@@ -36,7 +36,7 @@ async function main() {
   // Sin ADMIN_ROLE explícito: si ya existe, se conserva su rol actual (nunca
   // se degrada/asciende un admin existente por accidente al re-ejecutar el
   // script); si es nuevo, nace SUPER_ADMIN.
-  const existing = roleInput ? null : await prisma.adminUser.findUnique({ where: { email } })
+  const existing = await prisma.adminUser.findUnique({ where: { email } })
   const role = (roleInput as AdminRole | undefined) ?? existing?.role ?? "SUPER_ADMIN"
 
   const admin = await prisma.adminUser.upsert({
@@ -44,6 +44,13 @@ async function main() {
     update: { passwordHash, name, role },
     create: { email, passwordHash, name, role },
   })
+
+  if (existing && existing.role !== admin.role) {
+    // El rol viaja copiado en la sesión: sin esto un admin degradado seguiría
+    // con sus permisos anteriores hasta que expire su sesión.
+    const { count } = await prisma.authSession.deleteMany({ where: { user: { email } } })
+    console.log(`Rol cambiado: se cerraron ${count} sesión(es) activa(s) de ${email}.`)
+  }
 
   console.log("Admin creado/actualizado:")
   console.log(`Email: ${admin.email}`)

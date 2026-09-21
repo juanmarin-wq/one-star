@@ -9,6 +9,7 @@ vi.mock("@/lib/auth", () => ({
   },
 }))
 
+import { auth } from "@/lib/auth"
 import { config, proxy } from "@/proxy"
 
 function getResponseNonce(response: Response): string | null {
@@ -100,5 +101,33 @@ describe("proxy CSP", () => {
     expect(regularResponse.headers.get("content-security-policy")).toContain(
       "frame-ancestors 'none'",
     )
+  })
+})
+
+describe("proxy control de acceso por rol de admin", () => {
+  function withSession(adminRole: string | null) {
+    vi.mocked(auth.api.getSession).mockResolvedValue({
+      session: {},
+      user: { userType: "admin", adminRole },
+    } as never)
+  }
+
+  it("redirige a /admin al operador de inventario que escribe la URL de una página restringida", async () => {
+    withSession("INVENTORY_OPERATOR")
+    const res = await proxy(new NextRequest("https://example.com/admin/cupones"))
+    expect(res.status).toBe(307)
+    expect(new URL(res.headers.get("location")!).pathname).toBe("/admin")
+  })
+
+  it("deja pasar al operador de inventario a productos", async () => {
+    withSession("INVENTORY_OPERATOR")
+    const res = await proxy(new NextRequest("https://example.com/admin/productos/importar"))
+    expect(res.headers.get("location")).toBeNull()
+  })
+
+  it("deja pasar al super admin a cualquier página", async () => {
+    withSession("SUPER_ADMIN")
+    const res = await proxy(new NextRequest("https://example.com/admin/cupones"))
+    expect(res.headers.get("location")).toBeNull()
   })
 })

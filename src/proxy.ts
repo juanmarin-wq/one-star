@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { buildContentSecurityPolicy } from "@/lib/content-security-policy"
+import { canAccessAdminPath, normalizeAdminRole } from "@/lib/admin-access"
 import { NextResponse, type NextRequest } from "next/server"
 
 interface CspContext {
@@ -68,6 +69,14 @@ export async function proxy(request: NextRequest) {
       const loginUrl = new URL("/admin/login", nextUrl.origin)
       loginUrl.searchParams.set("callbackUrl", nextUrl.pathname)
       return redirectWithCsp(loginUrl, csp)
+    }
+    // Los roles limitados solo entran a su lista blanca: ocultar el menú no
+    // basta, la URL escrita a mano se corta aquí (cubre también páginas nuevas).
+    const adminRole = normalizeAdminRole(
+      (session?.user as { adminRole?: string | null } | undefined)?.adminRole
+    )
+    if (!canAccessAdminPath(adminRole, nextUrl.pathname)) {
+      return redirectWithCsp(new URL("/admin", nextUrl.origin), csp)
     }
   }
 

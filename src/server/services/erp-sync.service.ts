@@ -287,14 +287,28 @@ async function runCatalogSync(options: CatalogSyncOptions): Promise<ERPCatalogSy
 
       if (existingProduct) {
         // Actualizar datos base del producto
-        await updateCatalogProduct(existingProduct.id, {
+        const baseUpdate = {
           basePrice: group.basePrice,
           unitOfMeasure: group.unitOfMeasure,
           ...(publishedByErp === undefined ? {} : { isPublished: publishedByErp }),
+        }
+        if (existingProduct.erpId === null) {
           // Completa el erpId de un producto manual ya vinculado (por slug)
-          // al código del ERP; nunca pisa uno que ya tenía asignado.
-          ...(existingProduct.erpId === null ? { erpId: group.erpId } : {}),
-        })
+          // al código del ERP; nunca pisa uno que ya tenía asignado. Si ese
+          // erpId ya pertenece a otro producto (P2002) se omite solo el
+          // vínculo, sin abortar la sincronización del resto del catálogo.
+          try {
+            await updateCatalogProduct(existingProduct.id, { ...baseUpdate, erpId: group.erpId })
+          } catch (error: unknown) {
+            if ((error as { code?: string }).code !== "P2002") throw error
+            console.error(
+              `[erp-sync] erpId ${group.erpId} ya está asignado a otro producto; no se vincula "${baseSku}"`
+            )
+            await updateCatalogProduct(existingProduct.id, baseUpdate)
+          }
+        } else {
+          await updateCatalogProduct(existingProduct.id, baseUpdate)
+        }
         if (existingProduct.gender == null && group.gender) {
           genderCandidates.push({ erpId: group.erpId, gender: group.gender })
         }
