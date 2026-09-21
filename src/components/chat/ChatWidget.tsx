@@ -22,15 +22,22 @@ export default function ChatWidget() {
   const [hasCartActivity, setHasCartActivity] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
   const openCart = useCartStore((s) => s.openCart)
+  const isCartOpen = useCartStore((s) => s.isOpen)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const sendingRef = useRef(false)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages, loading])
 
+  // El carrito (panel derecho, z-50) ocupa el mismo rincón que la burbuja del
+  // chat (z-40) — se ocultan entre sí para no competir por el mismo espacio.
+  if (isCartOpen) return null
+
   async function handleSend() {
     const text = input.trim()
-    if (!text || loading) return
+    if (!text || sendingRef.current) return
+    sendingRef.current = true
     setInput("")
     const nextMessages: DisplayMessage[] = [...messages, { role: "user", content: text }]
     setMessages(nextMessages)
@@ -40,37 +47,47 @@ export default function ChatWidget() {
       .filter((m) => m !== WELCOME)
       .map((m) => ({ role: m.role, content: m.content }))
 
-    const result = await sendChatMessageAction(history, text)
-    setLoading(false)
+    try {
+      const result = await sendChatMessageAction(history, text)
 
-    if (result.error) {
-      setMessages((prev) => [...prev, { role: "assistant", content: result.error! }])
-      return
-    }
-
-    if (result.actions.length > 0) setHasCartActivity(true)
-
-    for (const action of result.actions) {
-      if (action.type === "add_to_cart") {
-        addItem({
-          id: action.variantId,
-          productId: action.productId,
-          kind: "product",
-          slug: action.slug,
-          name: action.name,
-          brand: action.brand,
-          imageUrl: action.imageUrl,
-          size: action.size,
-          color: action.color,
-          price: action.price,
-          originalPrice: action.price,
-          sku: action.sku,
-          quantity: action.quantity,
-        })
+      if (result.error) {
+        setMessages((prev) => [...prev, { role: "assistant", content: result.error! }])
+        return
       }
-    }
 
-    setMessages((prev) => [...prev, { role: "assistant", content: result.reply }])
+      if (result.actions.length > 0) setHasCartActivity(true)
+
+      for (const action of result.actions) {
+        if (action.type === "add_to_cart") {
+          addItem({
+            id: action.variantId,
+            productId: action.productId,
+            kind: "product",
+            slug: action.slug,
+            name: action.name,
+            brand: action.brand,
+            imageUrl: action.imageUrl,
+            size: action.size,
+            color: action.color,
+            price: action.price,
+            originalPrice: action.price,
+            sku: action.sku,
+            quantity: action.quantity,
+          })
+        }
+      }
+
+      setMessages((prev) => [...prev, { role: "assistant", content: result.reply }])
+    } catch (err) {
+      console.error("[ChatWidget] sendChatMessageAction falló:", err)
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Tuve un problema para responder. Intenta de nuevo en un momento." },
+      ])
+    } finally {
+      setLoading(false)
+      sendingRef.current = false
+    }
   }
 
   return (
